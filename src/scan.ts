@@ -85,16 +85,3 @@ export function scanTree(rootReal: string, maxFiles: number = MAX_FILES): TreeNo
 
   return walk(rootReal, '')
 }
-
-/** 树里所有 md 文件的相对路径，按树里的顺序。 */
-export function flattenFiles(nodes: TreeNode[]): string[] {
-  const out: string[] = []
-  const visit = (list: TreeNode[]) => {
-    for (const node of list) {
-      if (node.type === 'dir') visit(node.children)
-      else out.push(node.rel)
-    }
-  }
-  visit(nodes)
-  return out
-}

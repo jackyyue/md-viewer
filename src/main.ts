@@ -74,7 +74,7 @@ async function main(): Promise<void> {
     fail(`这不是一个文件夹：${rootReal}`)
   }
 
-  const handle = await startServer(rootReal, publicDir)
+  const handle = await startServer({ rootReal, publicDir })
 
   process.stdout.write(`md-viewer 已启动\n`)
   process.stdout.write(`  库根：${rootReal}\n`)

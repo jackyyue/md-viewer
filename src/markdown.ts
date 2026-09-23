@@ -10,6 +10,7 @@
 //   outside  指向库外，置灰不可点
 //   external http/https 等外链，正常打开
 
+import { esc, escAttr } from './html.ts'
 import { highlight } from './highlight.ts'
 
 export type OutlineItem = { level: number; text: string; id: string }
@@ -25,11 +26,6 @@ export type RenderOptions = {
 }
 
 export type RenderResult = { html: string; outline: OutlineItem[] }
-
-const esc = (s: string): string =>
-  s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-
-const escAttr = (s: string): string => esc(s).replace(/"/g, '&quot;')
 
 /** 去掉行内标记，只留文字。给大纲用。 */
 export function plainText(text: string): string {
@@ -47,7 +43,7 @@ export function plainText(text: string): string {
 // 5 图片 alt / 6 图片 src
 // 7 链接文字 / 8 链接目标
 //
-// 只存模式串。inline() 是递归的（链接文字要再过一遍行内解析），
+// 只存模式串。inlineToHtml() 是递归的（链接文字要再过一遍行内解析），
 // 而带 /g 的正则对象会带 lastIndex 状态——共享一个实例的话，
 // 递归一进去就把外层游标重置了，外层循环永远走不完。
 const INLINE_PATTERN =
@@ -55,7 +51,7 @@ const INLINE_PATTERN =
 
 function renderLink(text: string, target: string, options: RenderOptions): string {
   const resolved = options.classifyLink(target)
-  const label = inline(text, options)
+  const label = inlineToHtml(text, options)
 
   if (resolved.kind === 'external') {
     return `<a href="${escAttr(target)}" target="_blank" rel="noreferrer">${label}</a>`
@@ -66,7 +62,7 @@ function renderLink(text: string, target: string, options: RenderOptions): strin
   return `<span class="inert" title="这个链接指向库外">${label}</span>`
 }
 
-function inline(text: string, options: RenderOptions): string {
+function inlineToHtml(text: string, options: RenderOptions): string {
   let out = ''
   let last = 0
   const re = new RegExp(INLINE_PATTERN, 'g')
@@ -243,7 +239,7 @@ export function renderMarkdown(md: string, options: RenderOptions): RenderResult
       const text = heading[2]
       const id = `sec-${outline.length + 1}`
       outline.push({ level, text: plainText(text), id })
-      out.push(`<h${level} id="${id}">${inline(text, options)}</h${level}>`)
+      out.push(`<h${level} id="${id}">${inlineToHtml(text, options)}</h${level}>`)
       index += 1
       continue
     }
@@ -265,9 +261,9 @@ export function renderMarkdown(md: string, options: RenderOptions): RenderResult
         body.push(parseTableRow(lines[index]))
         index += 1
       }
-      const head = `<tr>${header.map((c) => `<th>${inline(c, options)}</th>`).join('')}</tr>`
+      const head = `<tr>${header.map((c) => `<th>${inlineToHtml(c, options)}</th>`).join('')}</tr>`
       const rows = body
-        .map((cells) => `<tr>${cells.map((c) => `<td>${inline(c, options)}</td>`).join('')}</tr>`)
+        .map((cells) => `<tr>${cells.map((c) => `<td>${inlineToHtml(c, options)}</td>`).join('')}</tr>`)
         .join('')
       out.push(`<table><thead>${head}</thead><tbody>${rows}</tbody></table>`)
       continue
@@ -276,7 +272,7 @@ export function renderMarkdown(md: string, options: RenderOptions): RenderResult
     if (/^\s*>\s?/.test(line)) {
       flushList()
       flushPara()
-      quoteBuf.push(inline(line.replace(/^\s*>\s?/, ''), options))
+      quoteBuf.push(inlineToHtml(line.replace(/^\s*>\s?/, ''), options))
       index += 1
       continue
     }
@@ -287,7 +283,7 @@ export function renderMarkdown(md: string, options: RenderOptions): RenderResult
       flushPara()
       const indent = indentWidth(listItem[1])
       const ordered = /^\d/.test(listItem[2])
-      const text = inline(listItem[3], options)
+      const text = inlineToHtml(listItem[3], options)
 
       while (listStack.length > 0) {
         const top = listStack[listStack.length - 1]
@@ -310,7 +306,7 @@ export function renderMarkdown(md: string, options: RenderOptions): RenderResult
 
     flushList()
     flushQuote()
-    paraBuf.push(inline(line, options))
+    paraBuf.push(inlineToHtml(line, options))
     index += 1
   }
 

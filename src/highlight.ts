@@ -5,12 +5,16 @@
 //   - 关键字除了颜色还要加粗（黑白打印机上颜色会变灰）
 // 所以这里只输出 span 和类名，配色全在 style.css 里。
 
+import { esc } from './html.ts'
+
 type Rule = { cls: string; re: RegExp }
 
-const esc = (s: string): string =>
-  s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-
-/** 所有规则都用粘性匹配，扫描位置由主循环控制，避免重复匹配同一段。 */
+/** 所有规则都用粘性匹配，扫描位置由主循环控制，避免重复匹配同一段。
+ *
+ * 这些正则对象是模块级共享的可变状态（粘性匹配靠 lastIndex）。
+ * 目前安全，因为 highlight() 不递归、且全程同步，每次 exec 前都会
+ * 显式重置 lastIndex。改动时守住这两条，否则会出现外层游标被里层
+ * 重置、循环转不出去的情况（本项目踩过一次，见 AGENTS.md 判断规则）。 */
 function sticky(source: string): RegExp {
   return new RegExp(source, 'y')
 }

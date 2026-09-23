@@ -5,7 +5,7 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { LibraryTooLargeError, flattenFiles, scanTree } from '../src/scan.ts'
+import { LibraryTooLargeError, scanTree } from '../src/scan.ts'
 
 function makeLibrary(): string {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'md-viewer-scan-'))
@@ -31,8 +31,28 @@ function makeLibrary(): string {
 
 test('只留 md，剪掉空枝，隐藏点目录和忽略名单', () => {
   const root = makeLibrary()
-  const tree = scanTree(root)
-  assert.deepEqual(flattenFiles(tree), ['sub/b.md', 'sub2/deep/f.md', 'a.md'])
+  assert.deepEqual(scanTree(root), [
+    {
+      type: 'dir',
+      name: 'sub',
+      rel: 'sub',
+      children: [{ type: 'file', name: 'b.md', rel: 'sub/b.md' }],
+    },
+    {
+      type: 'dir',
+      name: 'sub2',
+      rel: 'sub2',
+      children: [
+        {
+          type: 'dir',
+          name: 'deep',
+          rel: 'sub2/deep',
+          children: [{ type: 'file', name: 'f.md', rel: 'sub2/deep/f.md' }],
+        },
+      ],
+    },
+    { type: 'file', name: 'a.md', rel: 'a.md' },
+  ])
 })
 
 test('目录排在文件前面，同类按名字排', () => {

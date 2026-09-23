@@ -25,6 +25,18 @@ export type ServerHandle = {
   close: () => Promise<void>
 }
 
+export type ServerConfig = {
+  /** 库根。必须是 realpath 之后的绝对路径 */
+  rootReal: string
+  /** 浏览器端静态文件所在目录 */
+  publicDir: string
+  /** 偏好文件位置。不传就落在本机应用数据目录；测试传临时路径，免得动到真实偏好 */
+  prefsFile?: string
+}
+
+/** 补上默认值之后的配置。内部函数收这个，不收一串位置参数。 */
+type ResolvedConfig = ServerConfig & { prefsFile: string }
+
 const STATIC_FILES = new Set(['index.html', 'app.js', 'style.css'])
 
 function sendText(res: http.ServerResponse, status: number, text: string): void {
@@ -153,11 +165,15 @@ function handleFile(res: http.ServerResponse, rootReal: string, url: URL): void 
   sendJson(res, 200, { rel, html, outline })
 }
 
-function handlePrefs(res: http.ServerResponse): void {
-  sendJson(res, 200, readPrefs(prefsFilePath()))
+function handlePrefs(res: http.ServerResponse, prefsFile: string): void {
+  sendJson(res, 200, readPrefs(prefsFile))
 }
 
-async function handlePrefsSave(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
+async function handlePrefsSave(
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+  prefsFile: string,
+): Promise<void> {
   let body: unknown
   try {
     body = await readJsonBody(req)
@@ -167,9 +183,9 @@ async function handlePrefsSave(req: http.IncomingMessage, res: http.ServerRespon
   }
 
   // 只认识已知字段，其余丢掉；这样前端传垃圾也写不坏文件
-  const next = { ...readPrefs(prefsFilePath()), ...normalizePrefs(body) }
+  const next = { ...readPrefs(prefsFile), ...normalizePrefs(body) }
   try {
-    writePrefs(prefsFilePath(), next)
+    writePrefs(prefsFile, next)
   } catch (error) {
     sendJson(res, 500, { error: `偏好写不进去：${error instanceof Error ? error.message : String(error)}` })
     return
@@ -180,20 +196,20 @@ async function handlePrefsSave(req: http.IncomingMessage, res: http.ServerRespon
 function handle(
   req: http.IncomingMessage,
   res: http.ServerResponse,
-  rootReal: string,
-  publicDir: string,
+  config: ResolvedConfig,
 ): void {
   const url = new URL(req.url ?? '/', 'http://127.0.0.1')
   const pathname = url.pathname
+  const { rootReal, publicDir, prefsFile } = config
 
   // 偏好是唯一允许写入的路由，其余一律只读
   if (pathname === '/api/prefs') {
     if (req.method === 'GET') {
-      handlePrefs(res)
+      handlePrefs(res, prefsFile)
       return
     }
     if (req.method === 'POST') {
-      void handlePrefsSave(req, res)
+      void handlePrefsSave(req, res, prefsFile)
       return
     }
     sendText(res, 405, '偏好只支持 GET 和 POST')
@@ -230,10 +246,12 @@ function handle(
 }
 
 /** 起服务。端口交给系统挑，避免多个实例打架。 */
-export function startServer(rootReal: string, publicDir: string): Promise<ServerHandle> {
+export function startServer(config: ServerConfig): Promise<ServerHandle> {
+  const resolved: ResolvedConfig = { ...config, prefsFile: config.prefsFile ?? prefsFilePath() }
+
   const server = http.createServer((req, res) => {
     try {
-      handle(req, res, rootReal, publicDir)
+      handle(req, res, resolved)
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       if (!res.headersSent) sendJson(res, 500, { error: message })

@@ -58,7 +58,7 @@ test('拒绝不存在的路径', () => {
   assert.throws(() => resolveInsideRoot(root, 'nope.md'), OutsideLibraryError)
 })
 
-test('拒绝指向库外的符号链接', (t) => {
+test('拒绝指向库外的符号链接', () => {
   const root = makeLibrary()
   const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'md-viewer-outside-'))
   fs.writeFileSync(path.join(outside, 'secret.md'), '# secret\n')
@@ -66,9 +66,13 @@ test('拒绝指向库外的符号链接', (t) => {
   const link = path.join(root, 'link')
   try {
     fs.symlinkSync(fs.realpathSync.native(outside), link, 'junction')
-  } catch {
-    t.skip('这个环境不允许建符号链接')
-    return
+  } catch (error) {
+    // 这条测的是越界读文件，不许静默跳过：建不出链接就说清楚，让套件红着，
+    // 否则这台机器上这条保护就永远没人验证，而测试仍然报绿。
+    assert.fail(
+      `这个环境建不了符号链接（${error instanceof Error ? error.message : String(error)}），` +
+        '符号链接越界这条保护无法验证',
+    )
   }
 
   assert.throws(() => resolveInsideRoot(root, 'link/secret.md'), OutsideLibraryError)
