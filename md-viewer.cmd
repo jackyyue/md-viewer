@@ -1,7 +1,9 @@
 @echo off
-rem md-viewer 入口。有参数用参数，没参数弹文件夹选择框。
-rem 用法：md-viewer.cmd <文件夹路径>
-rem      或把文件夹直接拖到本文件上。
+rem md-viewer entry point.
+rem Usage: md-viewer.cmd <folder>
+rem Or drag a folder onto this file. Without a folder it opens a picker.
+rem Keep this file ASCII-only: cmd.exe reads it in the local code page, so
+rem non-ASCII text here turns into garbage and can break parsing.
 
 chcp 65001 >nul
 setlocal
@@ -10,6 +12,6 @@ set "HERE=%~dp0"
 node "%HERE%src\main.ts" %*
 if errorlevel 1 (
   echo.
-  echo md-viewer 退出时带错误，按任意键关闭窗口。
+  echo md-viewer exited with an error. Press any key to close.
   pause >nul
 )
