@@ -10,7 +10,7 @@ import path from 'node:path'
 
 export type Prefs = { sidebarWidth?: number; outlineWidth?: number }
 
-// 面板最窄可以拖到 0——那条分隔线本身还留着，所以还拖得回来。
+// 栏最窄可以拖到 0——那条分隔线本身还留着，所以还拖得回来。
 export const MIN_PANEL_WIDTH = 0
 export const MAX_PANEL_WIDTH = 4000
 

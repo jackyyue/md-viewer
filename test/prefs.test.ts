@@ -25,7 +25,7 @@ test('只接受有限的数字', () => {
   assert.deepEqual(normalizePrefs('320'), {})
 })
 
-test('两个面板的宽度各自独立', () => {
+test('两栏的宽度各自独立', () => {
   assert.deepEqual(normalizePrefs({ sidebarWidth: 300, outlineWidth: 240 }), {
     sidebarWidth: 300,
     outlineWidth: 240,
