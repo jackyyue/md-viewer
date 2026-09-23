@@ -1,0 +1,330 @@
+/* md-viewer 的界面样式。
+ *
+ * 配色规则来自 docs/spec.md 第 8 条：只用浅色底，深色文字。
+ * 代码高亮的关键字必须同时加粗——黑白打印机上颜色会变灰，只靠颜色区分不出来。
+ * 打印样式是第二版的事，这里不写。 */
+
+:root {
+  --bg: #ffffff;
+  --sidebar-bg: #f7f7f5;
+  --border: #dcdcd6;
+  --text: #1f2328;
+  --muted: #6b7280;
+  --accent: #1a56b0;
+  --code-bg: #f6f8fa;
+  --hover: #ececea;
+  --current: #dbe7f7;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+}
+
+body {
+  display: flex;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", "Segoe UI", sans-serif;
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+/* ---- 左侧 ---- */
+
+#sidebar {
+  width: 290px;
+  flex: 0 0 290px;
+  height: 100vh;
+  overflow-y: auto;
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--border);
+  padding: 10px 0 24px;
+}
+
+#lib-name {
+  padding: 4px 12px 10px;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--muted);
+  word-break: break-all;
+}
+
+#tree ul {
+  list-style: none;
+  margin: 0;
+  padding-left: 12px;
+}
+
+#tree > ul {
+  padding-left: 4px;
+}
+
+.row {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  padding: 2px 10px 2px 4px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1.5;
+  word-break: break-all;
+}
+
+.row:hover {
+  background: var(--hover);
+}
+
+.file-row.current {
+  background: var(--current);
+  font-weight: 700;
+}
+
+.twisty {
+  display: inline-block;
+  width: 12px;
+  color: var(--muted);
+  font-size: 11px;
+  flex: 0 0 12px;
+}
+
+li.dir > ul {
+  display: none;
+}
+
+li.dir.open > ul {
+  display: block;
+}
+
+#outline-wrap {
+  margin-top: 14px;
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+}
+
+.section-title {
+  padding: 0 12px 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.outline-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  color: var(--text);
+  padding: 2px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  word-break: break-all;
+}
+
+.outline-item:hover {
+  background: var(--hover);
+}
+
+.outline-item.lv1 {
+  padding-left: 10px;
+  font-weight: 700;
+}
+.outline-item.lv2 {
+  padding-left: 22px;
+}
+.outline-item.lv3 {
+  padding-left: 34px;
+  color: var(--muted);
+}
+
+/* ---- 右侧 ---- */
+
+#content {
+  flex: 1 1 auto;
+  height: 100vh;
+  overflow-y: auto;
+  padding: 28px 40px 80px;
+}
+
+#doc {
+  max-width: 860px;
+  margin: 0 auto;
+}
+
+#doc h1,
+#doc h2,
+#doc h3,
+#doc h4,
+#doc h5,
+#doc h6 {
+  line-height: 1.35;
+  margin: 1.6em 0 0.6em;
+  scroll-margin-top: 16px;
+}
+
+#doc h1 {
+  font-size: 26px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 8px;
+}
+#doc h2 {
+  font-size: 21px;
+}
+#doc h3 {
+  font-size: 17px;
+}
+#doc h4,
+#doc h5,
+#doc h6 {
+  font-size: 15px;
+  color: var(--muted);
+}
+
+#doc p {
+  margin: 0.7em 0;
+}
+
+#doc ul,
+#doc ol {
+  margin: 0.7em 0;
+  padding-left: 26px;
+}
+
+#doc li {
+  margin: 0.2em 0;
+}
+
+#doc a {
+  color: var(--accent);
+}
+
+#doc blockquote {
+  margin: 0.8em 0;
+  padding: 2px 0 2px 14px;
+  border-left: 3px solid var(--border);
+  color: var(--muted);
+}
+
+#doc hr {
+  border: 0;
+  border-top: 1px solid var(--border);
+  margin: 1.6em 0;
+}
+
+#doc code {
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 0.9em;
+  background: var(--code-bg);
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+#doc pre {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 10px 12px;
+  overflow-x: auto;
+  margin: 0.9em 0;
+}
+
+#doc pre code {
+  background: none;
+  padding: 0;
+  font-size: 12.5px;
+  line-height: 1.55;
+  white-space: pre;
+}
+
+#doc table {
+  border-collapse: collapse;
+  margin: 0.9em 0;
+  font-size: 13.5px;
+  display: block;
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+#doc th,
+#doc td {
+  border: 1px solid var(--border);
+  padding: 5px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+
+#doc th {
+  background: #f2f2ef;
+  font-weight: 700;
+}
+
+/* frontmatter：灰色小字，不隐藏 */
+#doc .frontmatter {
+  margin: 0 0 1.4em;
+  padding: 8px 12px;
+  background: #fafaf8;
+  border: 1px dashed var(--border);
+  border-radius: 4px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+/* 指向库外或不存在的东西：看得出是链接，但点不动 */
+#doc .inert {
+  color: var(--muted);
+  border-bottom: 1px dotted var(--border);
+  cursor: default;
+}
+
+/* ---- 代码高亮（浅色底，关键字加粗）---- */
+
+.hl-cm {
+  color: #6a737d;
+  font-style: italic;
+}
+.hl-st {
+  color: #0a6b3d;
+}
+.hl-nu {
+  color: #a04a00;
+}
+.hl-kw {
+  color: #0033cc;
+  font-weight: 700;
+}
+.hl-fn {
+  color: #6f42c1;
+}
+.hl-meta {
+  color: #6a737d;
+}
+.hl-add {
+  color: #0a6b3d;
+  background: #eaf7ee;
+}
+.hl-del {
+  color: #a11919;
+  background: #fdeeee;
+}
+
+/* ---- 错误提示 ---- */
+
+.error-box {
+  border: 1px solid #e0b4b4;
+  background: #fdf3f3;
+  color: #8a1f1f;
+  border-radius: 5px;
+  padding: 12px 16px;
+  margin: 0 0 1em;
+  white-space: pre-wrap;
+}

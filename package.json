@@ -1,0 +1,14 @@
+{
+  "name": "md-viewer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "点开一个文件夹，以只读方式浏览里面的 Markdown",
+  "engines": {
+    "node": ">=22.6"
+  },
+  "scripts": {
+    "start": "node src/main.ts",
+    "test": "node --test"
+  }
+}
