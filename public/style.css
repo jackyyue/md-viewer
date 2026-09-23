@@ -7,6 +7,7 @@
 :root {
   --bg: #ffffff;
   --sidebar-bg: #f7f7f5;
+  --sidebar-w: 290px;
   --border: #dcdcd6;
   --text: #1f2328;
   --muted: #6b7280;
@@ -38,13 +39,44 @@ body {
 /* ---- 左侧 ---- */
 
 #sidebar {
-  width: 290px;
-  flex: 0 0 290px;
+  width: var(--sidebar-w);
+  flex: 0 0 var(--sidebar-w);
   height: 100vh;
   overflow-y: auto;
+  overflow-x: hidden;
   background: var(--sidebar-bg);
-  border-right: 1px solid var(--border);
   padding: 10px 0 24px;
+}
+
+/* 左栏和正文之间那条竖线，可以拖动。
+ * 线本身只画中间 1px，两边留出抓取宽度。 */
+#divider {
+  flex: 0 0 7px;
+  position: relative;
+  cursor: col-resize;
+  z-index: 2;
+}
+
+#divider::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 3px;
+  width: 1px;
+  background: var(--border);
+}
+
+#divider:hover::after,
+#divider.dragging::after {
+  background: var(--accent);
+  width: 3px;
+  left: 2px;
+}
+
+body.dragging {
+  cursor: col-resize;
+  user-select: none;
 }
 
 #lib-name {

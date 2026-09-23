@@ -8,9 +8,11 @@ const docEl = document.getElementById("doc");
 const outlineEl = document.getElementById("outline");
 const outlineWrap = document.getElementById("outline-wrap");
 const contentEl = document.getElementById("content");
+const dividerEl = document.getElementById("divider");
 
 let libraryName = "md-viewer";
 let currentRel = null;
+let sidebarWidth = null;
 
 async function getJson(url) {
   const response = await fetch(url);
@@ -30,6 +32,66 @@ function showError(message) {
   box.className = "error-box";
   box.textContent = message;
   docEl.appendChild(box);
+}
+
+// ---- 左栏宽度 ----
+// 宽度存在服务端（不是 localStorage）：服务每次启动端口都变，
+// 而 localStorage 按源隔离，端口一变就读不到上次的值。
+
+function applySidebarWidth(px) {
+  // 右栏至少留 240px，否则树能把正文挤没
+  const max = Math.max(0, window.innerWidth - 240);
+  const width = Math.max(0, Math.min(px, max));
+  sidebarWidth = width;
+  document.documentElement.style.setProperty("--sidebar-w", `${width}px`);
+}
+
+async function loadPrefs() {
+  try {
+    const prefs = await getJson("/api/prefs");
+    if (typeof prefs.sidebarWidth === "number") applySidebarWidth(prefs.sidebarWidth);
+  } catch {
+    // 读不到偏好不影响使用，用默认宽度
+  }
+}
+
+async function savePrefs() {
+  if (sidebarWidth === null) return;
+  try {
+    await fetch("/api/prefs", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ sidebarWidth }),
+    });
+  } catch {
+    // 存不下就下次重新拖，不打扰阅读
+  }
+}
+
+let dragging = false;
+
+dividerEl.addEventListener("pointerdown", (event) => {
+  dragging = true;
+  dividerEl.setPointerCapture(event.pointerId);
+  dividerEl.classList.add("dragging");
+  document.body.classList.add("dragging");
+  event.preventDefault();
+});
+
+dividerEl.addEventListener("pointermove", (event) => {
+  if (!dragging) return;
+  applySidebarWidth(event.clientX); // 左栏从窗口左边起算，所以指针的 x 就是宽度
+});
+
+for (const type of ["pointerup", "pointercancel"]) {
+  dividerEl.addEventListener(type, (event) => {
+    if (!dragging) return;
+    dragging = false;
+    dividerEl.releasePointerCapture(event.pointerId);
+    dividerEl.classList.remove("dragging");
+    document.body.classList.remove("dragging");
+    void savePrefs();
+  });
 }
 
 // ---- 目录树 ----
@@ -168,6 +230,8 @@ docEl.addEventListener("click", (event) => {
 // ---- 启动 ----
 
 async function boot() {
+  await loadPrefs();
+
   try {
     const data = await getJson("/api/tree");
     libraryName = data.name;

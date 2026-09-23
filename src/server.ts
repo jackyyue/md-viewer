@@ -5,6 +5,8 @@
 //   GET /static/<name>   → 白名单里的静态文件
 //   GET /api/tree        → 目录树
 //   GET /api/file?p=...  → 一篇 md 的渲染结果
+//   GET /api/prefs       → 界面偏好
+//   POST /api/prefs      → 保存界面偏好
 //
 // 库根是唯一的边界，任何请求都要过 resolveInsideRoot。
 
@@ -15,6 +17,7 @@ import { MAX_FILE_BYTES, MD_EXTENSION } from './config.ts'
 import { OutsideLibraryError, resolveInsideRoot, resolveLinkRel, safeDecode, toPosix } from './paths.ts'
 import { LibraryTooLargeError, scanTree } from './scan.ts'
 import { renderMarkdown, type LinkTarget } from './markdown.ts'
+import { normalizePrefs, prefsFilePath, readPrefs, writePrefs } from './prefs.ts'
 
 export type ServerHandle = {
   url: string
@@ -55,6 +58,27 @@ function serveStatic(res: http.ServerResponse, publicDir: string, name: string):
     : 'text/html; charset=utf-8'
   res.writeHead(200, { 'content-type': type, 'cache-control': 'no-store' })
   res.end(body)
+}
+
+function readJsonBody(req: http.IncomingMessage, limit = 4096): Promise<unknown> {
+  return new Promise((resolve, reject) => {
+    let body = ''
+    req.on('data', (chunk: Buffer) => {
+      body += chunk.toString('utf8')
+      if (body.length > limit) {
+        reject(new Error('请求体过大'))
+        req.destroy()
+      }
+    })
+    req.on('end', () => {
+      try {
+        resolve(JSON.parse(body === '' ? '{}' : body))
+      } catch {
+        reject(new Error('请求体不是 JSON'))
+      }
+    })
+    req.on('error', reject)
+  })
 }
 
 function handleTree(res: http.ServerResponse, rootReal: string): void {
@@ -129,19 +153,57 @@ function handleFile(res: http.ServerResponse, rootReal: string, url: URL): void 
   sendJson(res, 200, { rel, html, outline })
 }
 
+function handlePrefs(res: http.ServerResponse): void {
+  sendJson(res, 200, readPrefs(prefsFilePath()))
+}
+
+async function handlePrefsSave(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
+  let body: unknown
+  try {
+    body = await readJsonBody(req)
+  } catch (error) {
+    sendJson(res, 400, { error: error instanceof Error ? error.message : String(error) })
+    return
+  }
+
+  // 只认识已知字段，其余丢掉；这样前端传垃圾也写不坏文件
+  const next = { ...readPrefs(prefsFilePath()), ...normalizePrefs(body) }
+  try {
+    writePrefs(prefsFilePath(), next)
+  } catch (error) {
+    sendJson(res, 500, { error: `偏好写不进去：${error instanceof Error ? error.message : String(error)}` })
+    return
+  }
+  sendJson(res, 200, next)
+}
+
 function handle(
   req: http.IncomingMessage,
   res: http.ServerResponse,
   rootReal: string,
   publicDir: string,
 ): void {
+  const url = new URL(req.url ?? '/', 'http://127.0.0.1')
+  const pathname = url.pathname
+
+  // 偏好是唯一允许写入的路由，其余一律只读
+  if (pathname === '/api/prefs') {
+    if (req.method === 'GET') {
+      handlePrefs(res)
+      return
+    }
+    if (req.method === 'POST') {
+      void handlePrefsSave(req, res)
+      return
+    }
+    sendText(res, 405, '偏好只支持 GET 和 POST')
+    return
+  }
+
   if (req.method !== 'GET') {
     sendText(res, 405, '只支持 GET')
     return
   }
-
-  const url = new URL(req.url ?? '/', 'http://127.0.0.1')
-  const pathname = url.pathname
 
   if (pathname === '/') {
     serveStatic(res, publicDir, 'index.html')
