@@ -8,20 +8,27 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 
-export type Prefs = { sidebarWidth?: number }
+export type Prefs = { sidebarWidth?: number; outlineWidth?: number }
 
-// 左栏最窄可以拖到 0——那条分隔线本身还留着，所以还拖得回来。
-export const MIN_SIDEBAR_WIDTH = 0
-export const MAX_SIDEBAR_WIDTH = 4000
+// 面板最窄可以拖到 0——那条分隔线本身还留着，所以还拖得回来。
+export const MIN_PANEL_WIDTH = 0
+export const MAX_PANEL_WIDTH = 4000
+
+function readWidth(value: unknown): number | undefined {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return undefined
+  return Math.round(Math.min(MAX_PANEL_WIDTH, Math.max(MIN_PANEL_WIDTH, value)))
+}
 
 /** 只接受有限数字，超出范围夹住。别的一律丢掉，不报错。 */
 export function normalizePrefs(input: unknown): Prefs {
   if (typeof input !== 'object' || input === null) return {}
-  const raw = (input as Record<string, unknown>).sidebarWidth
-  if (typeof raw !== 'number' || !Number.isFinite(raw)) return {}
-  return {
-    sidebarWidth: Math.round(Math.min(MAX_SIDEBAR_WIDTH, Math.max(MIN_SIDEBAR_WIDTH, raw))),
-  }
+  const raw = input as Record<string, unknown>
+  const out: Prefs = {}
+  const sidebarWidth = readWidth(raw.sidebarWidth)
+  const outlineWidth = readWidth(raw.outlineWidth)
+  if (sidebarWidth !== undefined) out.sidebarWidth = sidebarWidth
+  if (outlineWidth !== undefined) out.outlineWidth = outlineWidth
+  return out
 }
 
 export function prefsFilePath(): string {

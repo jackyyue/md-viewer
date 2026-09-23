@@ -8,6 +8,7 @@
   --bg: #ffffff;
   --sidebar-bg: #f7f7f5;
   --sidebar-w: 290px;
+  --outline-w: 260px;
   --border: #dcdcd6;
   --text: #1f2328;
   --muted: #6b7280;
@@ -48,16 +49,16 @@ body {
   padding: 10px 0 24px;
 }
 
-/* 左栏和正文之间那条竖线，可以拖动。
+/* 两栏之间那条竖线，可以拖动。
  * 线本身只画中间 1px，两边留出抓取宽度。 */
-#divider {
+.divider {
   flex: 0 0 7px;
   position: relative;
   cursor: col-resize;
   z-index: 2;
 }
 
-#divider::after {
+.divider::after {
   content: "";
   position: absolute;
   top: 0;
@@ -67,8 +68,8 @@ body {
   background: var(--border);
 }
 
-#divider:hover::after,
-#divider.dragging::after {
+.divider:hover::after,
+.divider.dragging::after {
   background: var(--accent);
   width: 3px;
   left: 2px;
@@ -77,6 +78,17 @@ body {
 body.dragging {
   cursor: col-resize;
   user-select: none;
+}
+
+/* 最右侧的大纲栏 */
+#outline-panel {
+  width: var(--outline-w);
+  flex: 0 0 var(--outline-w);
+  height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: var(--sidebar-bg);
+  padding: 10px 0 24px;
 }
 
 #lib-name {
@@ -134,14 +146,8 @@ li.dir.open > ul {
   display: block;
 }
 
-#outline-wrap {
-  margin-top: 14px;
-  border-top: 1px solid var(--border);
-  padding-top: 8px;
-}
-
 .section-title {
-  padding: 0 12px 4px;
+  padding: 0 12px 6px;
   font-size: 12px;
   font-weight: 700;
   color: var(--muted);

@@ -6,13 +6,15 @@ const libNameEl = document.getElementById("lib-name");
 const treeEl = document.getElementById("tree");
 const docEl = document.getElementById("doc");
 const outlineEl = document.getElementById("outline");
-const outlineWrap = document.getElementById("outline-wrap");
+const outlinePanelEl = document.getElementById("outline-panel");
 const contentEl = document.getElementById("content");
 const dividerEl = document.getElementById("divider");
+const dividerRightEl = document.getElementById("divider-right");
 
 let libraryName = "md-viewer";
 let currentRel = null;
 let sidebarWidth = null;
+let outlineWidth = null;
 
 async function getJson(url) {
   const response = await fetch(url);
@@ -34,65 +36,86 @@ function showError(message) {
   docEl.appendChild(box);
 }
 
-// ---- 左栏宽度 ----
+// ---- 两栏的宽度 ----
 // 宽度存在服务端（不是 localStorage）：服务每次启动端口都变，
 // 而 localStorage 按源隔离，端口一变就读不到上次的值。
 
+// 正文至少留这么宽，否则两侧一挤，正文就没了
+const MIN_CONTENT_WIDTH = 240;
+
+function clamp(px, max) {
+  return Math.max(0, Math.min(px, max));
+}
+
 function applySidebarWidth(px) {
-  // 右栏至少留 240px，否则树能把正文挤没
-  const max = Math.max(0, window.innerWidth - 240);
-  const width = Math.max(0, Math.min(px, max));
+  const reserved = outlinePanelEl.hidden ? 0 : outlineWidth ?? 0;
+  const width = clamp(px, Math.max(0, window.innerWidth - MIN_CONTENT_WIDTH - reserved));
   sidebarWidth = width;
   document.documentElement.style.setProperty("--sidebar-w", `${width}px`);
+}
+
+function applyOutlineWidth(px) {
+  const width = clamp(
+    px,
+    Math.max(0, window.innerWidth - MIN_CONTENT_WIDTH - (sidebarWidth ?? 0)),
+  );
+  outlineWidth = width;
+  document.documentElement.style.setProperty("--outline-w", `${width}px`);
 }
 
 async function loadPrefs() {
   try {
     const prefs = await getJson("/api/prefs");
     if (typeof prefs.sidebarWidth === "number") applySidebarWidth(prefs.sidebarWidth);
+    if (typeof prefs.outlineWidth === "number") applyOutlineWidth(prefs.outlineWidth);
   } catch {
     // 读不到偏好不影响使用，用默认宽度
   }
 }
 
 async function savePrefs() {
-  if (sidebarWidth === null) return;
   try {
     await fetch("/api/prefs", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ sidebarWidth }),
+      body: JSON.stringify({ sidebarWidth, outlineWidth }),
     });
   } catch {
     // 存不下就下次重新拖，不打扰阅读
   }
 }
 
-let dragging = false;
+/** 把一条分隔线变成拖拽把手。onDrag 收到的是指针的 x。 */
+function setupDivider(element, onDrag) {
+  let active = false;
 
-dividerEl.addEventListener("pointerdown", (event) => {
-  dragging = true;
-  dividerEl.setPointerCapture(event.pointerId);
-  dividerEl.classList.add("dragging");
-  document.body.classList.add("dragging");
-  event.preventDefault();
-});
-
-dividerEl.addEventListener("pointermove", (event) => {
-  if (!dragging) return;
-  applySidebarWidth(event.clientX); // 左栏从窗口左边起算，所以指针的 x 就是宽度
-});
-
-for (const type of ["pointerup", "pointercancel"]) {
-  dividerEl.addEventListener(type, (event) => {
-    if (!dragging) return;
-    dragging = false;
-    dividerEl.releasePointerCapture(event.pointerId);
-    dividerEl.classList.remove("dragging");
-    document.body.classList.remove("dragging");
-    void savePrefs();
+  element.addEventListener("pointerdown", (event) => {
+    active = true;
+    element.setPointerCapture(event.pointerId);
+    element.classList.add("dragging");
+    document.body.classList.add("dragging");
+    event.preventDefault();
   });
+
+  element.addEventListener("pointermove", (event) => {
+    if (active) onDrag(event.clientX);
+  });
+
+  for (const type of ["pointerup", "pointercancel"]) {
+    element.addEventListener(type, (event) => {
+      if (!active) return;
+      active = false;
+      element.releasePointerCapture(event.pointerId);
+      element.classList.remove("dragging");
+      document.body.classList.remove("dragging");
+      void savePrefs();
+    });
+  }
 }
+
+// 左栏从窗口左边起算，所以指针的 x 就是宽度；右侧那栏反过来。
+setupDivider(dividerEl, (x) => applySidebarWidth(x));
+setupDivider(dividerRightEl, (x) => applyOutlineWidth(window.innerWidth - x));
 
 // ---- 目录树 ----
 
@@ -182,12 +205,12 @@ function renderOutline(outline) {
   outlineEl.textContent = "";
   const items = outline.filter((entry) => entry.level <= 3);
 
-  if (items.length === 0) {
-    outlineWrap.hidden = true;
-    return;
-  }
+  // 没有标题就连整栏和它的分隔线一起收起来，不留一条空把手
+  const visible = items.length > 0;
+  outlinePanelEl.hidden = !visible;
+  dividerRightEl.hidden = !visible;
+  if (!visible) return;
 
-  outlineWrap.hidden = false;
   for (const entry of items) {
     const button = document.createElement("button");
     button.type = "button";

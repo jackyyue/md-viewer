@@ -6,7 +6,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import {
-  MAX_SIDEBAR_WIDTH,
+  MAX_PANEL_WIDTH,
   normalizePrefs,
   prefsFilePath,
   readPrefs,
@@ -25,9 +25,19 @@ test('只接受有限的数字', () => {
   assert.deepEqual(normalizePrefs('320'), {})
 })
 
+test('两个面板的宽度各自独立', () => {
+  assert.deepEqual(normalizePrefs({ sidebarWidth: 300, outlineWidth: 240 }), {
+    sidebarWidth: 300,
+    outlineWidth: 240,
+  })
+  assert.deepEqual(normalizePrefs({ outlineWidth: 240 }), { outlineWidth: 240 })
+  assert.deepEqual(normalizePrefs({ sidebarWidth: 300, outlineWidth: 'x' }), { sidebarWidth: 300 })
+})
+
 test('超出范围夹住，不报错', () => {
   assert.deepEqual(normalizePrefs({ sidebarWidth: -50 }), { sidebarWidth: 0 })
-  assert.deepEqual(normalizePrefs({ sidebarWidth: 1e9 }), { sidebarWidth: MAX_SIDEBAR_WIDTH })
+  assert.deepEqual(normalizePrefs({ sidebarWidth: 1e9 }), { sidebarWidth: MAX_PANEL_WIDTH })
+  assert.deepEqual(normalizePrefs({ outlineWidth: -1 }), { outlineWidth: 0 })
 })
 
 test('坏文件当作没有偏好，不当错误', () => {
@@ -41,8 +51,8 @@ test('坏文件当作没有偏好，不当错误', () => {
 test('写进去再读出来是同一个值', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'md-viewer-prefs-'))
   const file = path.join(dir, 'nested', 'prefs.json')
-  writePrefs(file, { sidebarWidth: 412 })
-  assert.deepEqual(readPrefs(file), { sidebarWidth: 412 })
+  writePrefs(file, { sidebarWidth: 412, outlineWidth: 188 })
+  assert.deepEqual(readPrefs(file), { sidebarWidth: 412, outlineWidth: 188 })
 })
 
 test('偏好文件落在本机应用数据目录下', () => {
