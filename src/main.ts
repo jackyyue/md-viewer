@@ -1,8 +1,8 @@
 // 入口。有参数就用参数，没参数就弹系统文件夹选择框。
 //
 // 用法：
-//   node src/main.ts D:\oss-agent\paseo\wiki
-//   md-viewer.cmd D:\oss-agent\paseo\wiki
+//   node src/main.ts <文件夹路径>
+//   md-viewer.cmd <文件夹路径>
 //   把文件夹拖到 md-viewer.cmd 上
 //   不带参数双击 md-viewer.cmd → 弹选择框
 

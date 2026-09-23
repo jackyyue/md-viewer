@@ -1,6 +1,6 @@
 @echo off
 rem md-viewer 入口。有参数用参数，没参数弹文件夹选择框。
-rem 用法：md-viewer.cmd D:\oss-agent\paseo\wiki
+rem 用法：md-viewer.cmd <文件夹路径>
 rem      或把文件夹直接拖到本文件上。
 
 chcp 65001 >nul
